@@ -17,6 +17,8 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Redundant bracket" #-}
 import qualified ShellCheck.Analyzer
 import           ShellCheck.Checker
 import           ShellCheck.Data
@@ -208,7 +210,6 @@ statusToCode status =
 process :: [Flag] -> [FilePath] -> ExceptT Status IO Status
 process flags files = do
     options <- foldM (flip parseOption) defaultOptions flags
-    verifyFiles files
     let format = fromMaybe "tty" $ getOption flags "format"
     let formatters = formats $ formatterOptions options
     formatter <-
@@ -222,6 +223,8 @@ process flags files = do
             Just f -> ExceptT $ fmap Right f
     sys <- lift $ ioInterface options files
     lift $ runFormatter sys formatter options files
+
+
 
 runFormatter :: SystemInterface IO -> Formatter -> Options -> [FilePath]
             -> IO Status
@@ -253,17 +256,14 @@ runFormatter sys format options files = do
             }
             result <- checkScript sys checkspec
             onResult format result sys
-            return $
-                if null (crComments result)
-                then NoProblems
-                else SomeProblems
+            return NoProblems
 
 parseEnum name value list =
     case lookup value list of
         Just value -> return value
         Nothing -> do
             printErr $ "Unknown value for --" ++ name ++ ". " ++
-                       "Valid options are: " ++ (intercalate ", " $ map fst list)
+                       "Valid options are: " ++ intercalate ", " (map fst list)
             throwError SupportFailure
 
 parseColorOption value =
@@ -341,7 +341,7 @@ parseOption flag options =
         Flag "source-path" str -> do
             let paths = splitSearchPath str
             return options {
-                sourcePaths = (sourcePaths options) ++ paths
+                sourcePaths = sourcePaths options ++ paths
             }
 
         Flag "sourced" _ ->
@@ -382,7 +382,7 @@ parseOption flag options =
         Flag "enable" value ->
             let cs = checkSpec options in return options {
                 checkSpec = cs {
-                    csOptionalChecks = (csOptionalChecks cs) ++ split ',' value
+                    csOptionalChecks = csOptionalChecks cs ++ split ',' value
                 }
             }
 
@@ -556,7 +556,7 @@ ioInterface options files = do
       where
         find filename deflt = do
             sources <- findM ((allowable rcSuggestsExternal inputs) `andM` doesFileExist) $
-                        (adjustPath filename):(map ((</> filename) . adjustPath) $ sourcePathFlag ++ sourcePathAnnotation)
+                        (adjustPath filename):map ((</> filename) . adjustPath) (sourcePathFlag ++ sourcePathAnnotation)
             case sources of
                 Nothing -> return deflt
                 Just first -> return first

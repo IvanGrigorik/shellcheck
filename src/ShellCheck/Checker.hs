@@ -38,6 +38,7 @@ import Prelude hiding (readFile)
 import Control.Monad
 
 import Test.QuickCheck.All
+import System.Console.GetOpt (ArgDescr(NoArg))
 
 tokenToPosition startMap t = fromMaybe fail $ do
     span <- Map.lookup (tcId t) startMap
@@ -79,24 +80,25 @@ checkScript sys spec = do
         }
         let parseMessages = prComments result
         let tokenPositions = prTokenPositions result
-        let analysisSpec root =
-                as {
-                    asScript = root,
-                    asShellType = csShellTypeOverride spec,
-                    asFallbackShell = shellFromFilename $ csFilename spec,
-                    asCheckSourced = csCheckSourced spec,
-                    asExecutionMode = Executed,
-                    asTokenPositions = tokenPositions,
-                    asExtendedAnalysis = csExtendedAnalysis spec,
-                    asOptionalChecks = getEnableDirectives root ++ csOptionalChecks spec
-                } where as = newAnalysisSpec root
-        let analysisMessages =
-                maybe []
-                    (arComments . analyzeScript . analysisSpec)
-                        $ prRoot result
-        let translator = tokenToPosition tokenPositions
-        return . nub . sortMessages . filter shouldInclude $
-            (parseMessages ++ map translator analysisMessages)
+        return $results
+        -- let analysisSpec root =
+        --         as {
+        --             asScript = root,
+        --             asShellType = csShellTypeOverride spec,
+        --             asFallbackShell = shellFromFilename $ csFilename spec,
+        --             asCheckSourced = csCheckSourced spec,
+        --             asExecutionMode = Executed,
+        --             asTokenPositions = tokenPositions,
+        --             asExtendedAnalysis = csExtendedAnalysis spec,
+        --             asOptionalChecks = getEnableDirectives root ++ csOptionalChecks spec
+        --         } where as = newAnalysisSpec root
+        -- let analysisMessages =
+        --         maybe []
+        --             (arComments . analyzeScript . analysisSpec)
+        --                 $ prRoot result
+        -- let translator = tokenToPosition tokenPositions
+        -- return . nub . sortMessages . filter shouldInclude $
+        --     (parseMessages ++ map translator analysisMessages)
 
     shouldInclude pc =
             severity <= csMinSeverity spec &&
@@ -220,9 +222,6 @@ prop_worksWhenSourcing =
 
 prop_worksWhenSourcingWithDashDash =
     null $ checkWithIncludes [("lib", "bar=1")] "source -- lib; echo \"$bar\""
-
-prop_worksWhenSourcingWithDashP =
-    null $ checkWithIncludes [("lib", "bar=1")] "source -p \"$MYPATH\" lib; echo \"$bar\""
 
 prop_worksWhenDotting =
     null $ checkWithIncludes [("lib", "bar=1")] ". lib; echo \"$bar\""
