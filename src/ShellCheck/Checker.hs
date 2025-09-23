@@ -78,49 +78,8 @@ checkScript sys spec = do
             psIgnoreRC = csIgnoreRC spec,
             psShellTypeOverride = csShellTypeOverride spec
         }
-        let parseMessages = prComments result
-        let tokenPositions = prTokenPositions result
-        return $results
-        -- let analysisSpec root =
-        --         as {
-        --             asScript = root,
-        --             asShellType = csShellTypeOverride spec,
-        --             asFallbackShell = shellFromFilename $ csFilename spec,
-        --             asCheckSourced = csCheckSourced spec,
-        --             asExecutionMode = Executed,
-        --             asTokenPositions = tokenPositions,
-        --             asExtendedAnalysis = csExtendedAnalysis spec,
-        --             asOptionalChecks = getEnableDirectives root ++ csOptionalChecks spec
-        --         } where as = newAnalysisSpec root
-        -- let analysisMessages =
-        --         maybe []
-        --             (arComments . analyzeScript . analysisSpec)
-        --                 $ prRoot result
-        -- let translator = tokenToPosition tokenPositions
-        -- return . nub . sortMessages . filter shouldInclude $
-        --     (parseMessages ++ map translator analysisMessages)
-
-    shouldInclude pc =
-            severity <= csMinSeverity spec &&
-            case csIncludedWarnings spec of
-                Nothing -> code `notElem` csExcludedWarnings spec
-                Just includedWarnings -> code `elem` includedWarnings
-        where
-            code     = cCode (pcComment pc)
-            severity = cSeverity (pcComment pc)
-
-    sortMessages = sortOn order
-    order pc =
-        let pos = pcStartPos pc
-            comment = pcComment pc in
-        (posFile pos,
-         posLine pos,
-         posColumn pos,
-         cSeverity comment,
-         cCode comment,
-         cMessage comment)
-    getPosition = pcStartPos
-
+        -- Return only parse comments, no analysis
+        return $ prComments result
 
 getErrors sys spec =
     sort . map getCode . crComments $
